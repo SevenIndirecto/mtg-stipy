@@ -1,30 +1,33 @@
 <template>
-  <div class='home'>
+  <div class="home">
     <div v-if="loading">Loading</div>
-    <div v-else-if="doesNotExist">
+    <div v-else-if="doesNotExist" class="white--text text-center mt-4">
       Room does not exist.
     </div>
     <div v-else>
-      <img
-        v-if='$store.state.stipulation'
-        :src='require(`../assets/stipulations/${$store.state.stipulation}.png`)'
+      <v-img
+        v-if="$store.state.stipulation"
+        :src="require(`../assets/stipulations/${$store.state.stipulation}.png`)"
+        width="100%"
       />
     </div>
   </div>
 </template>
 
-<script lang='ts'>
-import { Component, Vue } from 'vue-property-decorator';
-// import { joinRoom } from '@/helpers/firebase';
-
-@Component({
+<script>
+export default {
   data() {
     return {
-      roomId: this.$route.params.room,
+      roomId: null,
       stipulation: null,
       doesNotExist: false,
       loading: true,
     };
+  },
+  created() {
+    if (this.$store.state.user?.uid) {
+      this.joinRoom();
+    }
   },
   watch: {
     '$store.state.user': {
@@ -34,17 +37,19 @@ import { Component, Vue } from 'vue-property-decorator';
         }
       },
       immediate: true,
-    }
+    },
+    '$route': 'joinRoom',
   },
   methods: {
     async joinRoom() {
-      const response = await this.$store.dispatch('joinRoom', this.roomId);
-      if (!response) {
-        this.doesNotExist = true;
+      this.roomId = this.$route.params.room;
+      if (!this.$store.state.user.uid) {
+        return false;
       }
+      const response = await this.$store.dispatch('joinRoom', this.roomId);
+      this.doesNotExist = !response;
       this.loading = false;
-    }
+    },
   },
-})
-export default class Home extends Vue {}
+};
 </script>

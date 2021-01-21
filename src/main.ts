@@ -4,6 +4,7 @@ import './registerServiceWorker';
 import router from './router';
 import store from './store';
 import { auth } from '@/helpers/firebase';
+import vuetify from './plugins/vuetify';
 
 Vue.config.productionTip = false;
 
@@ -13,19 +14,21 @@ auth.onAuthStateChanged((user) => {
     app = new Vue({
       router,
       store,
-      render: h => h(App)
+      vuetify,
+      render: h => h(App),
     }).$mount('#app');
   }
 
   if (user) {
-    console.log('main.ts: User', user);
     store.dispatch('logIn',
       {
         name: user.displayName,
         email: user.email,
         photo: user.photoURL,
         uid: user.uid,
-      }
+      },
     );
+  } else {
+    router.push({ name: 'login' });
   }
 });

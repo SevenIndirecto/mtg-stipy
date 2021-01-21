@@ -3,8 +3,8 @@ import 'firebase/auth';
 import 'firebase/database';
 import { generateUID, getRandomIntInclusive } from '@/helpers/utils';
 import { NUM_STIPULATIONS } from '@/constants';
+import { Participant } from '@/store';
 
-// firebase init - add your own config here
 const firebaseConfig = {
   apiKey: 'AIzaSyD6l8q71boPW-qLQISVeUCZwB3LVP-nb6I',
   authDomain: 'mtg-stipy.firebaseapp.com',
@@ -20,12 +20,6 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const auth = firebase.auth();
 
-// collection references
-// const usersCollection = db.collection('users');
-// const postsCollection = db.collection('posts');
-// const commentsCollection = db.collection('comments');
-// const likesCollection = db.collection('likes');
-
 interface User {
   uid: string;
   photo?: string;
@@ -33,27 +27,33 @@ interface User {
   email?: string;
 }
 
-interface Room {
-  id: string;
-  users: { [uid: string]: string };
-}
+type Room = { [uid: string]: Participant };
 
 function storeUser(user: User) {
   db.ref(`users/${user.uid}`).set(user);
 }
 
+function getRoomRef(roomId: string) {
+  return db.ref(`rooms/${roomId}`);
+}
+
 async function getRoom(roomId: string) {
   const room = await db.ref(`rooms/${roomId}`).once('value');
-  return room.val();
+  return room.val() as Room;
 }
 
 function getRandomStipulation() {
   return getRandomIntInclusive(1, NUM_STIPULATIONS);
 }
 
-// function roll(roomId: string) {
-//
-// }
+function addPlayerToRoom(user: User, stipulation: number, roomId: string) {
+  db.ref(`rooms/${roomId}/${user.uid}`).set({
+    stipulation,
+    playerPhoto: user.photo,
+    playerName: user.name,
+    playerId: user.uid,
+  });
+}
 
 async function joinRoom(user: User, roomId: string) {
   const existingRoom = await getRoom(roomId);
@@ -61,9 +61,9 @@ async function joinRoom(user: User, roomId: string) {
   if (existingRoom) {
     // If user already in room, do not roll
     // const usersInRoom = Object.keys(existingRoom);
-    const stipulationsUsed = new Set(Object.values(existingRoom));
-
-    console.log('Room already exists', existingRoom);
+    const stipulationsUsed = new Set(Object.values(existingRoom).map(
+      ({ stipulation }) => stipulation,
+    ));
 
     if (!(user.uid in existingRoom)) {
       if (stipulationsUsed.size >= NUM_STIPULATIONS) {
@@ -76,11 +76,10 @@ async function joinRoom(user: User, roomId: string) {
         stipulation = getRandomStipulation();
       } while (stipulationsUsed.has(stipulation));
 
-      console.log('hello', user);
-      db.ref(`rooms/${roomId}/${user.uid}`).set(stipulation);
+      addPlayerToRoom(user, stipulation, roomId);
       return stipulation;
-    } else  {
-      return existingRoom[user.uid];
+    } else {
+      return existingRoom[user.uid].stipulation;
     }
   }
   return null;
@@ -89,20 +88,16 @@ async function joinRoom(user: User, roomId: string) {
 async function createRoom(user: User) {
   const roomId = generateUID(5);
   const stipulation = getRandomStipulation();
-  db.ref(`rooms/${roomId}/${user.uid}`).set(stipulation);
+  addPlayerToRoom(user, stipulation, roomId);
   return { roomId, stipulation };
 }
 
-// export utils/refs
 export {
   db,
   auth,
   storeUser,
   joinRoom,
   createRoom,
+  getRoomRef,
   User,
-  // usersCollection,
-  // postsCollection,
-  // commentsCollection,
-  // likesCollection
 };
