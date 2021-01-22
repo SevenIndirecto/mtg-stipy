@@ -33,16 +33,30 @@ const routes: Array<RouteConfig> = [
 const router = new VueRouter({
   mode: 'history',
   base: process.env.BASE_URL,
-  routes
+  routes,
 });
 
 router.beforeEach((to, from, next) => {
   const requiresAuth = to.matched.some(x => x.meta.requiresAuth);
 
   if (requiresAuth && !auth.currentUser) {
-    next('auth');
+    if (to.name === 'room' && to.params.room) {
+      try {
+        localStorage.setItem('room', to.params.room);
+      } catch {
+        console.log('Local storage not accessible');
+      }
+    }
+    next('login');
   } else {
-    next();
+    const room = localStorage.getItem('room');
+    if (auth.currentUser && room) {
+      // Join room
+      localStorage.removeItem('room');
+      next({ name: 'room', params: { room } });
+    } else {
+      next();
+    }
   }
 });
 

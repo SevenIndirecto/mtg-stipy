@@ -67,8 +67,9 @@
         :absolute="true"
         :bottom="true"
         :right="true"
-        direction="top"
         :open-on-hover="false"
+        style="bottom: 60px;"
+        direction="top"
         transition="slide-y-transition"
       >
         <template v-slot:activator>

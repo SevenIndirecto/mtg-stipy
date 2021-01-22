@@ -56,6 +56,9 @@ function addPlayerToRoom(user: User, stipulation: number, roomId: string) {
 }
 
 async function joinRoom(user: User, roomId: string) {
+  if (roomId) {
+    roomId = roomId.toUpperCase();
+  }
   const existingRoom = await getRoom(roomId);
 
   if (existingRoom) {
